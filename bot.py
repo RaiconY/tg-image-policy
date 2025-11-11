@@ -90,7 +90,7 @@ async def set_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     """
-    Добавляет текст на изображение
+    Добавляет текст на изображение (юридическая информация снизу слева)
 
     Args:
         image: Исходное изображение PIL
@@ -106,40 +106,45 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     # Получаем размеры изображения
     width, height = img.size
 
-    # Пытаемся загрузить шрифт
+    # Маленький шрифт для юридической информации (14-16 пикселей)
+    font_size = 14
+
+    # Пытаемся загрузить шрифт (обычный, не Bold)
     try:
-        # Пробуем использовать стандартный шрифт (если доступен)
-        font_size = max(30, min(width, height) // 15)
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        # Пробуем использовать обычный шрифт DejaVu Sans
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
     except:
         try:
-            # Альтернативный шрифт
-            font_size = max(30, min(width, height) // 15)
-            font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", font_size)
+            # Альтернативный шрифт Liberation Sans
+            font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", font_size)
         except:
-            # Используем дефолтный шрифт
-            font = ImageFont.load_default()
+            try:
+                # Если обычных нет, используем Bold но маленький
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+            except:
+                # Используем дефолтный шрифт
+                font = ImageFont.load_default()
 
     # Получаем размеры текста
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
-    # Вычисляем позицию для центрирования текста
-    x = (width - text_width) // 2
-    y = (height - text_height) // 2
+    # Позиция снизу слева с небольшими отступами
+    padding = 8
+    x = padding
+    y = height - text_height - padding
 
-    # Добавляем полупрозрачный фон для текста
-    padding = 20
+    # Добавляем полупрозрачный фон для читаемости
     background_bbox = [
         x - padding,
         y - padding,
         x + text_width + padding,
         y + text_height + padding
     ]
-    draw.rectangle(background_bbox, fill=(0, 0, 0, 180))
+    draw.rectangle(background_bbox, fill=(0, 0, 0, 150))
 
-    # Рисуем текст
+    # Рисуем текст белым цветом
     draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
 
     return img
