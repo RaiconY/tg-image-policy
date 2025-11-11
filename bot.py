@@ -32,23 +32,20 @@ BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("Необходимо установить переменную окружения TELEGRAM_BOT_TOKEN")
 
-# Глобальные настройки для текста
-user_texts = {}
+# Фиксированный текст для наложения на изображения
+OVERLAY_TEXT = 'ТОО "Ломбард "Деньги Населению", лицензия 10.21.0017.Л берілген күні: 12.03.2021 жыл, ҚР Қаржы нарықтарын реттеу және дамыту агенттігі берген ГЭСВ 179%'
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
     welcome_message = (
         "Привет! 👋\n\n"
-        "Я бот для наложения текста на изображения.\n\n"
+        "Я бот для наложения юридической информации на изображения.\n\n"
         "Как пользоваться:\n"
-        "1. Отправьте команду /text с текстом, который хотите добавить\n"
-        "   Например: /text Мой текст\n"
-        "2. Отправьте мне изображение\n"
-        "3. Получите изображение с наложенным текстом\n\n"
+        "1. Отправьте мне любое изображение\n"
+        "2. Получите изображение с юридической информацией снизу слева\n\n"
         "Команды:\n"
         "/start - показать это сообщение\n"
-        "/text <текст> - установить текст для наложения\n"
         "/help - справка"
     )
     await update.message.reply_text(welcome_message)
@@ -58,34 +55,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /help"""
     help_message = (
         "Справка по использованию бота:\n\n"
-        "1. Установите текст командой:\n"
-        "   /text Ваш текст здесь\n\n"
-        "2. Отправьте изображение (как фото или документ)\n\n"
-        "3. Бот вернет изображение с наложенным текстом\n\n"
-        "Текст будет размещен по центру изображения с полупрозрачным фоном."
+        "Просто отправьте изображение (как фото или документ), "
+        "и бот автоматически добавит юридическую информацию снизу слева.\n\n"
+        "Юридическая информация:\n"
+        f"{OVERLAY_TEXT}"
     )
     await update.message.reply_text(help_message)
-
-
-async def set_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /text для установки текста"""
-    user_id = update.effective_user.id
-
-    if not context.args:
-        await update.message.reply_text(
-            "Использование: /text <ваш текст>\n"
-            "Например: /text Привет, мир!"
-        )
-        return
-
-    # Объединяем все аргументы в один текст
-    text = ' '.join(context.args)
-    user_texts[user_id] = text
-
-    await update.message.reply_text(
-        f"Текст установлен: '{text}'\n\n"
-        "Теперь отправьте изображение, чтобы наложить на него этот текст."
-    )
 
 
 def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
@@ -106,8 +81,8 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     # Получаем размеры изображения
     width, height = img.size
 
-    # Маленький шрифт для юридической информации (14-16 пикселей)
-    font_size = 14
+    # Маленький шрифт для юридической информации (12 пикселей)
+    font_size = 12
 
     # Пытаемся загрузить шрифт (обычный, не Bold)
     try:
@@ -152,18 +127,6 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик получения фото"""
-    user_id = update.effective_user.id
-
-    # Проверяем, установлен ли текст для пользователя
-    if user_id not in user_texts:
-        await update.message.reply_text(
-            "Сначала установите текст с помощью команды /text\n"
-            "Например: /text Мой текст"
-        )
-        return
-
-    text = user_texts[user_id]
-
     # Отправляем сообщение о начале обработки
     processing_msg = await update.message.reply_text("Обрабатываю изображение...")
 
@@ -186,8 +149,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
-        # Добавляем текст на изображение
-        result_image = add_text_to_image(image, text)
+        # Добавляем фиксированный текст на изображение
+        result_image = add_text_to_image(image, OVERLAY_TEXT)
 
         # Сохраняем результат в буфер
         output_buffer = BytesIO()
@@ -197,7 +160,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Отправляем результат
         await update.message.reply_photo(
             photo=output_buffer,
-            caption=f"Текст '{text}' добавлен на изображение ✓"
+            caption="Юридическая информация добавлена ✓"
         )
 
         # Удаляем сообщение о обработке
@@ -216,7 +179,6 @@ def main():
     # Регистрируем обработчики команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("text", set_text))
 
     # Регистрируем обработчики сообщений
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
