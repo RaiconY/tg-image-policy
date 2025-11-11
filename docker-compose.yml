@@ -5,8 +5,7 @@ services:
     build: .
     container_name: tg-image-bot
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-    # Можно также использовать env_file:
-    # env_file:
-    #   - .env
