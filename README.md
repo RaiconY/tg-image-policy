@@ -59,6 +59,129 @@ TELEGRAM_BOT_TOKEN=your_actual_bot_token_here
 python bot.py
 ```
 
+## Варианты деплоя (где запускать бота)
+
+Бот должен работать постоянно, чтобы отвечать на сообщения. Выберите один из вариантов:
+
+### Вариант 1: Docker (рекомендуется) 🐳
+
+Самый простой и надежный способ. Требуется установленный Docker и Docker Compose.
+
+```bash
+# Создайте .env файл с токеном
+cp .env.example .env
+nano .env  # добавьте токен
+
+# Запустите бота
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+```
+
+**Преимущества:**
+- Изолированное окружение
+- Автоматический перезапуск при падении
+- Легко обновлять и откатывать версии
+- Работает одинаково на любой ОС
+
+### Вариант 2: Быстрый деплой через скрипт
+
+Используйте интерактивный скрипт для автоматического деплоя:
+
+```bash
+cp .env.example .env
+nano .env  # добавьте токен
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Скрипт предложит выбрать метод запуска (Docker или локально).
+
+### Вариант 3: VPS/Сервер (Linux)
+
+Для постоянной работы на сервере используйте systemd:
+
+1. Отредактируйте файл `telegram-bot.service`:
+   ```bash
+   nano telegram-bot.service
+   ```
+
+2. Замените пути и пользователя:
+   - `YOUR_USER` → ваш пользователь
+   - `/path/to/tg-image-policy` → полный путь к проекту
+
+3. Скопируйте и активируйте сервис:
+   ```bash
+   sudo cp telegram-bot.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable telegram-bot
+   sudo systemctl start telegram-bot
+   ```
+
+4. Управление сервисом:
+   ```bash
+   sudo systemctl status telegram-bot   # Статус
+   sudo systemctl restart telegram-bot  # Перезапуск
+   sudo systemctl stop telegram-bot     # Остановка
+   sudo journalctl -u telegram-bot -f   # Логи
+   ```
+
+### Вариант 4: Облачные платформы
+
+#### Heroku
+```bash
+# Установите Heroku CLI, затем:
+heroku create your-bot-name
+heroku config:set TELEGRAM_BOT_TOKEN=your_token
+git push heroku main
+```
+
+#### Railway.app
+1. Создайте аккаунт на [Railway.app](https://railway.app)
+2. Подключите GitHub репозиторий
+3. Добавьте переменную окружения `TELEGRAM_BOT_TOKEN`
+4. Railway автоматически соберет и запустит бот
+
+#### DigitalOcean App Platform
+1. Создайте новое приложение из GitHub
+2. Выберите репозиторий
+3. Добавьте `TELEGRAM_BOT_TOKEN` в Environment Variables
+4. Деплой произойдет автоматически
+
+### Вариант 5: Локальный компьютер (для тестирования)
+
+⚠️ Не рекомендуется для production - компьютер должен быть постоянно включен.
+
+```bash
+# Linux/Mac - запуск в фоне
+nohup python bot.py > bot.log 2>&1 &
+
+# Или используйте tmux/screen
+tmux new -s telegram-bot
+python bot.py
+# Нажмите Ctrl+B, затем D для отключения
+```
+
+### Рекомендации по выбору
+
+| Вариант | Сложность | Стоимость | Когда использовать |
+|---------|-----------|-----------|-------------------|
+| Docker на VPS | Средняя | $5-10/мес | Production, полный контроль |
+| Railway.app | Низкая | $5/мес или Free tier | Быстрый старт |
+| Heroku | Низкая | $7/мес | Простота деплоя |
+| Systemd на VPS | Средняя | $5-10/мес | Если Docker недоступен |
+| Локальный ПК | Низкая | Бесплатно | Только тестирование |
+
+**Популярные VPS провайдеры:**
+- [DigitalOcean](https://www.digitalocean.com) - от $5/мес
+- [Hetzner](https://www.hetzner.com) - от €4/мес
+- [Vultr](https://www.vultr.com) - от $5/мес
+- [Timeweb](https://timeweb.com) - от 300₽/мес (RU)
+
 ## Как получить токен бота
 
 1. Откройте Telegram и найдите [@BotFather](https://t.me/BotFather)
@@ -88,11 +211,15 @@ python bot.py
 
 ```
 tg-image-policy/
-├── bot.py              # Основной файл бота
-├── requirements.txt    # Зависимости Python
-├── .env.example        # Пример файла с переменными окружения
-├── .gitignore          # Файлы для игнорирования в Git
-└── README.md           # Документация
+├── bot.py                  # Основной файл бота
+├── requirements.txt        # Зависимости Python
+├── Dockerfile              # Конфигурация Docker-образа
+├── docker-compose.yml      # Конфигурация Docker Compose
+├── deploy.sh               # Скрипт автоматического деплоя
+├── telegram-bot.service    # Systemd service для Linux
+├── .env.example            # Пример файла с переменными окружения
+├── .gitignore              # Файлы для игнорирования в Git
+└── README.md               # Документация
 ```
 
 ## Технические детали

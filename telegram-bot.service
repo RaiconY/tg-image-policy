@@ -1,0 +1,17 @@
+[Unit]
+Description=Telegram Image Overlay Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/path/to/tg-image-policy
+Environment="TELEGRAM_BOT_TOKEN=your_bot_token_here"
+# Или использовать EnvironmentFile:
+# EnvironmentFile=/path/to/tg-image-policy/.env
+ExecStart=/path/to/tg-image-policy/venv/bin/python /path/to/tg-image-policy/bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

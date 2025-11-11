@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build: .
+    container_name: tg-image-bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    # Можно также использовать env_file:
+    # env_file:
+    #   - .env
