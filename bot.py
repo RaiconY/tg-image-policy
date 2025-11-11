@@ -63,6 +63,47 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_message)
 
 
+def wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int, draw: ImageDraw.ImageDraw) -> list:
+    """
+    Разбивает текст на строки, чтобы он помещался по ширине
+
+    Args:
+        text: Текст для разбиения
+        font: Шрифт для измерения
+        max_width: Максимальная ширина в пикселях
+        draw: Объект ImageDraw для измерения текста
+
+    Returns:
+        Список строк
+    """
+    words = text.split()
+    lines = []
+    current_line = []
+
+    for word in words:
+        # Пробуем добавить слово к текущей строке
+        test_line = ' '.join(current_line + [word])
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        test_width = bbox[2] - bbox[0]
+
+        if test_width <= max_width:
+            current_line.append(word)
+        else:
+            # Если текущая строка не пустая, сохраняем её
+            if current_line:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+            else:
+                # Слово само по себе слишком длинное, всё равно добавляем
+                lines.append(word)
+
+    # Добавляем последнюю строку
+    if current_line:
+        lines.append(' '.join(current_line))
+
+    return lines
+
+
 def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     """
     Добавляет текст на изображение (юридическая информация снизу слева)
@@ -81,8 +122,8 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     # Получаем размеры изображения
     width, height = img.size
 
-    # Маленький шрифт для юридической информации (12 пикселей)
-    font_size = 12
+    # Размер шрифта зависит от высоты изображения (1.5% от высоты, минимум 10, максимум 20)
+    font_size = max(10, min(20, int(height * 0.015)))
 
     # Пытаемся загрузить шрифт (обычный, не Bold)
     try:
@@ -100,27 +141,50 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
                 # Используем дефолтный шрифт
                 font = ImageFont.load_default()
 
-    # Получаем размеры текста
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+    # Отступы
+    padding = int(width * 0.01)  # 1% от ширины изображения
 
-    # Позиция снизу слева с небольшими отступами
-    padding = 8
-    x = padding
-    y = height - text_height - padding
+    # Максимальная ширина текста (ширина изображения минус отступы с обеих сторон)
+    max_text_width = width - (padding * 4)
+
+    # Разбиваем текст на строки
+    lines = wrap_text(text, font, max_text_width, draw)
+
+    # Вычисляем высоту одной строки
+    bbox = draw.textbbox((0, 0), "Тест", font=font)
+    line_height = bbox[3] - bbox[1]
+
+    # Межстрочный интервал
+    line_spacing = int(line_height * 0.3)
+
+    # Общая высота текстового блока
+    total_text_height = len(lines) * line_height + (len(lines) - 1) * line_spacing
+
+    # Вычисляем максимальную ширину среди всех строк
+    max_actual_width = 0
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        line_width = bbox[2] - bbox[0]
+        max_actual_width = max(max_actual_width, line_width)
+
+    # Позиция снизу слева
+    x = padding * 2
+    y = height - total_text_height - padding * 2
 
     # Добавляем полупрозрачный фон для читаемости
     background_bbox = [
         x - padding,
         y - padding,
-        x + text_width + padding,
-        y + text_height + padding
+        x + max_actual_width + padding,
+        y + total_text_height + padding
     ]
     draw.rectangle(background_bbox, fill=(0, 0, 0, 150))
 
-    # Рисуем текст белым цветом
-    draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
+    # Рисуем текст построчно белым цветом
+    current_y = y
+    for line in lines:
+        draw.text((x, current_y), line, fill=(255, 255, 255, 255), font=font)
+        current_y += line_height + line_spacing
 
     return img
 
