@@ -6,9 +6,18 @@ Telegram бот для наложения текста на изображени
 import os
 import logging
 from io import BytesIO
+from pathlib import Path
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from PIL import Image, ImageDraw, ImageFont
+
+# Загружаем переменные окружения из .env файла (если есть)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv не установлен - это нормально, будем использовать системные переменные
+    pass
 
 # Настройка логирования
 logging.basicConfig(
