@@ -171,15 +171,6 @@ def add_text_to_image(image: Image.Image, text: str) -> Image.Image:
     x = padding * 2
     y = height - total_text_height - padding * 2
 
-    # Добавляем полупрозрачный фон для читаемости
-    background_bbox = [
-        x - padding,
-        y - padding,
-        x + max_actual_width + padding,
-        y + total_text_height + padding
-    ]
-    draw.rectangle(background_bbox, fill=(0, 0, 0, 150))
-
     # Рисуем текст построчно белым цветом
     current_y = y
     for line in lines:
